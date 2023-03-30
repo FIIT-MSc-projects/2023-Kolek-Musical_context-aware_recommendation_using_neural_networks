@@ -1,4 +1,5 @@
 *
 !.gitignore
-!data-analysis.ipynb
+!src/data-analysis.ipynb
+!src/spotify_scraper.ipynb
 !README.md
