@@ -1,7 +1,3 @@
 *
 !.gitignore
-!src
-!src/data-analysis.ipynb
-!src/spotify_scraper.ipynb
-!src/KMeans_traditional.ipynb
-!README.md
+!src/*
