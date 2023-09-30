@@ -1,3 +1,7 @@
-*
-!.gitignore
-!src/*
+.git
+.idea
+.virtualenv
+data
+.ipynb_checkpoints
+.DS_Store
+src/.cache
