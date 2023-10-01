@@ -1,6 +1,7 @@
 .git
 .idea
 .virtualenv
+!data/selected_features_clustered.csv
 data
 .ipynb_checkpoints
 .DS_Store
