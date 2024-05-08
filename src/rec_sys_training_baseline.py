@@ -13,32 +13,6 @@ pd.set_option('display.max_columns', None)  # Display all columns
 pd.set_option('display.width', 1000)        # Set the display width to 1000 characters
 pd.set_option('display.max_rows', 10)       # Display up to 10 rows
 
-
-# ## Function Overview: `classify_time_of_day`
-#
-# **Purpose**:
-# - Classifies a given timestamp into a time of day category based on the hour.
-#
-# **Parameters**:
-# - `timestamp`: A datetime object containing the time information.
-#
-# **Returns**:
-# - `1` for morning (4 AM to 11:59 AM).
-# - `2` for afternoon to evening (12 PM to 7:59 PM).
-# - `3` for night (8 PM to 3:59 AM).
-#
-# **Usage**:
-# This function can be used to categorize activities or events into time-of-day segments for analysis or reporting.
-#
-def classify_time_of_day(timestamp):
-    hour = timestamp.hour
-    if 4 <= hour < 12:
-        return 1
-    elif 12 <= hour < 20:
-        return 2
-    else:
-        return 3
-
 # ## Data Handling Process
 #
 # 1. **Load Metadata**:
@@ -64,10 +38,6 @@ metadata_path = '../data/id_metadata.csv'
 listening_history_path = '../data/listening_history.csv'
 metadata_df = pd.read_csv(metadata_path, delimiter='\t')
 df = pd.read_csv(listening_history_path, delimiter='\t')
-
-df['timestamp'] = pd.to_datetime(df['timestamp'])
-metadata_df.rename(columns={'id': 'song'}, inplace=True)
-df['time_of_day'] = df['timestamp'].apply(classify_time_of_day)
 print("Loaded listening history:")
 print(df)
 
@@ -86,6 +56,7 @@ print(df)
 #    - The resulting DataFrame `df` now contains only the records from the past week, ready for analysis or further processing.
 #
 
+df['timestamp'] = pd.to_datetime(df['timestamp'])
 latest_date = df['timestamp'].max()
 one_week_ago = latest_date - pd.Timedelta(days=7)
 df = df[df['timestamp'] >= one_week_ago]
@@ -93,25 +64,6 @@ print('\n\n')
 print("Filtered last week:")
 print(df)
 
-# ## Data Processing
-#
-# 1. **Merge DataFrames**:
-#    - `df` is merged with selected columns from `metadata_df` based on the 'song' column. The selected columns include song attributes such as release year, popularity, danceability, energy, key, mode, valence, and tempo.
-#
-# 2. **Standardize Numeric Data**:
-#    - Identify numeric columns in the merged DataFrame using `select_dtypes`.
-#    - Standardize these numeric columns using `StandardScaler` to normalize the data, aiding in model performance and stability.
-#
-
-df = pd.merge(df, metadata_df[
-    ['song', 'release', 'popularity', 'danceability', 'energy', 'key', 'mode', 'valence', 'tempo']], on='song')
-
-numeric_cols_df = df.select_dtypes(include=np.number).columns
-sscaler = StandardScaler()
-df[numeric_cols_df] = sscaler.fit_transform(df[numeric_cols_df])
-print('\n\n')
-print("Merged with features and scaled:")
-print(df)
 
 # ## DataFrame Operations Overview
 #
@@ -143,7 +95,6 @@ print('\n\n')
 print("df with popularity:")
 print(df)
 
-
 # ## Building Interaction Matrix and Enriched Data
 #
 # ### 1. **Initialize Interaction Matrix**:
@@ -155,17 +106,12 @@ print(df)
 # ### 3. **Populate Interaction Matrix**:
 #    - Iterate through the DataFrame `df`, using mapped indices to fill the matrix with the logarithm of song popularity incremented by one, to factor in popularity dynamics in interactions.
 #
-# ### 4. **Map Song Features**:
-#    - Extract and map song-related features like release date, popularity, danceability, and others into dictionaries from `df`, indexed by song ID.
-#
 # ### 5. **Prepare Data for Detailed Interaction DataFrame**:
-#    - Arrays are prepared for user IDs, song IDs, song features, and interaction values by iterating over the interaction matrix and mapping features for each song-user pair.
+#    - Arrays are prepared for user IDs, song IDs and interaction values by iterating over the interaction matrix for each song-user pair.
 #
 # ### 6. **Construct Feature-Rich DataFrame**:
-#    - A new DataFrame `interaction_df` is created to encapsulate user IDs, song IDs, their interactions, and all the additional song features such as release, popularity, and more.
-#
-# This process effectively creates a structured and detailed view of user-song interactions, which is essential for tasks like recommendation systems or user behavior analysis based on music preferences.
-#
+#    - A new DataFrame `interaction_df` is created to encapsulate user IDs, song IDs and their interaction.
+
 interaction_matrix = np.zeros((df['user'].nunique(), len(unique_names_song)))
 
 # Map users and songs to matrix indices
@@ -177,50 +123,18 @@ for index, row in df.iterrows():
     song_idx = song_indices[row['song']]
     interaction_matrix[user_idx, song_idx] = np.log(row['song_popularity'] + 1)
 
-# Prepare dictionaries to map song IDs to their features
-song_features = {
-    'release': df.set_index('song')['release'].to_dict(),
-    'popularity': df.set_index('song')['popularity'].to_dict(),
-    'danceability': df.set_index('song')['danceability'].to_dict(),
-    'energy': df.set_index('song')['energy'].to_dict(),
-    'key': df.set_index('song')['key'].to_dict(),
-    'mode': df.set_index('song')['mode'].to_dict(),
-    'valence': df.set_index('song')['valence'].to_dict(),
-    'tempo': df.set_index('song')['tempo'].to_dict(),
-    'time_of_day': df.set_index('song')['time_of_day'].to_dict(),
-}
-
-# Create lists for DataFrame including additional features
-user_ids, song_ids, releases, popularities, danceabilities, energies, keys, modes, valences, tempos, interactions, time_of_days = [], [], [], [], [], [], [], [], [], [], [], []
+# Create lists for DataFrame
+user_ids, song_ids,  interactions = [], [], []
 for user in user_indices:
     for song in song_indices:
         user_ids.append(user_indices[user])
         song_ids.append(song_indices[song])
         interactions.append(interaction_matrix[user_indices[user], song_indices[song]])
-        # Map each song to its additional features
-        releases.append(song_features['release'][song])
-        popularities.append(song_features['popularity'][song])
-        danceabilities.append(song_features['danceability'][song])
-        energies.append(song_features['energy'][song])
-        keys.append(song_features['key'][song])
-        modes.append(song_features['mode'][song])
-        valences.append(song_features['valence'][song])
-        tempos.append(song_features['tempo'][song])
-        time_of_days.append(song_features['time_of_day'][song])
 
 # Create the interaction DataFrame
 interaction_df = pd.DataFrame({
     'user_id': user_ids,
     'song_id': song_ids,
-    'release': releases,
-    'popularity': popularities,
-    'danceability': danceabilities,
-    'energy': energies,
-    'key': keys,
-    'mode': modes,
-    'valence': valences,
-    'tempo': tempos,
-    'time_of_day': time_of_days,
     'interaction': interactions
 })
 print('\n\n')
@@ -256,12 +170,9 @@ print(N, M)
 # ### 2. **Evaluate Unique Interaction Values**:
 #    - Determine the number of unique interaction values within the `df_train` using `interaction.nunique()` to understand the diversity of user-song interactions.
 #
-# ### 3. **Isolate Continuous Features**:
-#    - Extract continuous features (columns from the third to the second-last) from both `df_train` and `df_test` into `continuous_data_train` and `continuous_data_test` respectively.
-#    - Print shapes of the continuous datasets and `df_train` to understand their dimensions.
-#
 # ### 4. **Check for Missing Values**:
 #    - Calculate and display the total count of missing values per column in both `df_train` and `df_test` using `isnull().sum()` to assess data cleanliness and readiness for further processing.
+#
 
 df_train, df_test = train_test_split(interaction_df, test_size=0.2, random_state=42)
 print('\n\n')
@@ -270,123 +181,89 @@ print(df_train)
 print('\n\n')
 print("df_train.interaction.nunique():")
 print(df_train.interaction.nunique())
-continuous_data_train = df_train.iloc[:, 2:-1]
-continuous_data_test = df_test.iloc[:, 2:-1]
-print('\n\n')
-print('continuous_data_train.shape, continuous_data_test.shape, df_train.shape:')
-print(continuous_data_train.shape, continuous_data_test.shape, df_train.shape)
-print('\n\n')
-print('continuous_data_train:')
-print(continuous_data_train)
-print('\n\n')
 print('df_test.isnull().sum():')
 print(df_test.isnull().sum())
 print('\n\n')
 print('df_train.isnull().sum():')
 print(df_train.isnull().sum())
 
-# ## Deep Learning Model Construction and Training for Recommendation System
-#
-# ### Model Design:
-#
-# #### 1. **Embedding Layers**:
-#    - **User and Song Embeddings**: Separate embedding layers for users (`u_embedding`) and songs (`s_embedding`), each with a dimensionality of `K=15`, are created to capture the latent factors from user and song IDs.
-#    - **Bias Embeddings**: Additional embeddings (`u_bias` and `s_bias`) for users and songs respectively to model individual propensities beyond the interaction effects captured by the dot product.
-#
-# #### 2. **Main Interaction Branch**:
-#    - **Dot Product**: Computes the dot product between user and song embeddings to capture the interaction strength.
-#    - **Addition of Bias**: Adds user and song biases to the interaction terms.
-#    - **Flatten**: Flattens the output for further processing or merging with other model branches.
-#
-# #### 3. **Continuous Data Branch**:
-#    - An additional input layer (`continuous_input`) takes in continuous feature data related to interactions (e.g., time of day, song features).
-#    - **Concatenation with Embeddings**: Concatenates flattened user and song embeddings with the continuous data.
-#    - **Fully Connected Layers**: Multiple dense layers with dropout for regularization and ELU activation to model nonlinearities.
-#
-# #### 4. **Combining Branches**:
-#    - The outputs of the main interaction branch and the continuous data branch are combined using addition to integrate the learned embeddings with the contextual data.
-#
-# ### Model Compilation and Training:
-#
-# - **Loss Function**: Mean Squared Error (MSE), suitable for regression tasks like predicting interaction strengths.
-# - **Optimizer**: Stochastic Gradient Descent (SGD) with learning rate adjustments and momentum to converge efficiently.
-# - **Metrics**: Tracks MSE during training for both training and validation data.
-#
-# ### Training Process:
-#
-# - The model is trained using the user IDs, song IDs, and continuous feature data from `df_train`.
-# - Targets are the interaction values adjusted by subtracting the mean interaction (`mu`) to normalize the data.
-# - Validation is performed using similar data from `df_test`.
-# - Training and validation losses, as well as MSE, are plotted for each epoch to monitor overfitting and convergence.
-#
-# ### Saving and Loading the Model:
-#
-# - If the model file (`model.h5`) does not exist, it is saved after training. If it exists, it is loaded directly, saving time and resources if retraining is not necessary.
-#
-# ### Usage:
-#
-# - This model can be used in a recommendation system to predict the strength of interaction between users and songs based on both their intrinsic characteristics captured through embeddings and contextual/continuous data.
-#
-# This structured approach ensures that the model not only learns from the intrinsic properties of users and songs but also incorporates additional contextual information, potentially enhancing the accuracy and personalization of the recommendations.
 
-K = 15 # define the size of embeddings, capture the relations in data (10-50)
+# ## Simplified Neural Network Model for Recommendation System
+#
+# ### Overview:
+#
+# This Python script details the setup, training, and storage of a recommendation system model that leverages user and song embeddings. The model is designed to predict interaction strengths based purely on these embeddings, without integrating additional continuous input data.
+#
+# ### Model Architecture:
+#
+# #### 1. **Input Layers**:
+#    - **User and Song Inputs**: Separate input layers for user (`u`) and song (`s`) IDs, each taking a single integer representing the ID.
+#
+# #### 2. **Embedding Layers**:
+#    - **Embeddings**: Both user and song IDs are transformed into dense vectors (`u_embedding` and `s_embedding`) with a predefined size (`K=15`), capturing the latent relationships.
+#    - **Bias Embeddings**: User-specific and song-specific biases (`u_bias` and `s_bias`) are modeled as additional embeddings to adjust the interaction output.
+#
+# #### 3. **Interaction Layer**:
+#    - **Dot Product and Bias Addition**: The model computes the dot product of user and song embeddings, adds respective biases, and flattens the output, preparing it for the prediction task.
+#
+# ### Model Compilation:
+#
+# - **Loss Function**: Mean Squared Error (MSE) is used, focusing on minimizing the error between predicted and actual interaction values.
+# - **Optimizer**: Stochastic Gradient Descent (SGD) with a learning rate of 0.08 and momentum of 0.9, aimed at efficient convergence during training.
+#
+# ### Training the Model:
+#
+# - **Normalization**: Interaction values are normalized by subtracting the mean interaction value (`mu`) from `df_train`.
+# - **Batch Size**: Set to 128, balancing the computational load and training speed.
+# - **Epochs**: The model undergoes 50 training epochs, providing sufficient iterations for the embeddings to adjust to an optimal representation.
+# - **Validation**: Uses a separate dataset (`df_test`) to validate the model’s performance during training, preventing overfitting and monitoring generalization.
+#
+# ### Monitoring Training Progress:
+#
+# - **Loss and MSE Visualization**: Plots training and validation loss, as well as Mean Squared Error (MSE), across epochs to visually monitor the model's learning progress and convergence.
+#
+# ### Model Storage:
+#
+# - **Check for Existing Model**: Before training a new model, the script checks if a model file (`model.h5`) already exists to avoid unnecessary retraining.
+# - **Save/Load Model**: If no existing model is found, the new model is trained and saved. Otherwise, the existing model is loaded.
+#
+
+K = 15  # define the size of embeddings, capture the relations in data (10-50)
 
 mu = df_train.interaction.mean()  # Mean interaction for normalization
 epochs = 50
-model_path = '../helpers/model.h5'
+model_path = '../helpers/baseline-model.h5'
 if not os.path.exists(model_path):
     u = Input(shape=(1,))
     s = Input(shape=(1,))
-    u_embedding = Embedding(N, K)(u) # (N, 1, K)
-    s_embedding = Embedding(M, K)(s) # (N, 1, K)
-
+    u_embedding = Embedding(N, K)(u)  # (N, 1, K)
+    s_embedding = Embedding(M, K)(s)  # (N, 1, K)
 
     # main branch
-    u_bias = Embedding(N, 1)(u) # (N, 1, 1)
-    s_bias = Embedding(M, 1)(s) # (N, 1, 1)
-    x = Dot(axes=2)([u_embedding, s_embedding]) # (N, 1, 1)
+    u_bias = Embedding(N, 1)(u)  # (N, 1, 1)
+    s_bias = Embedding(M, 1)(s)  # (N, 1, 1)
+    x = Dot(axes=2)([u_embedding, s_embedding])  # (N, 1, 1)
     x = Add()([x, u_bias, s_bias])
-    x = Flatten()(x) # (N, 1)
+    x = Flatten()(x)  # (N, 1)
 
-    # CONTINUOUS BRANCH
-    continuous_input = Input(shape=(continuous_data_train.shape[1],))
-
-
-    # side branch
-    u_embedding = Flatten()(u_embedding) # (N, K)
-    s_embedding = Flatten()(s_embedding) # (N, K)
-    y = Concatenate()([u_embedding, s_embedding, continuous_input]) # (N, 2K)
-    y = Dense(512)(y)
-    y = Activation('elu')(y)
-    y = Dropout(0.3)(y)
-    y = Dense(512)(y)
-    y = Activation('elu')(y)
-    y = Dropout(0.3)(y)
-    y = Dense(512)(y)
-    y = Activation('elu')(y)
-    y = Dropout(0.3)(y)
-    y = Dense(1)(y)
-
-
-    # merge
-    x = Add()([x, y])
-
-    model = Model(inputs=[u, s, continuous_input], outputs=x)
+    # model definition
+    model = Model(inputs=[u, s], outputs=x)
     model.compile(
-      loss='mse',
-      optimizer=SGD(learning_rate=0.08, momentum=0.9),
-      metrics=['mse'],
+        loss='mse',
+        optimizer=SGD(learning_rate=0.08, momentum=0.9),
+        metrics=['mse'],
     )
 
+    # Now, train the model
     r = model.fit(
-      x=[df_train.user_id.values, df_train.song_id.values, continuous_data_train.values],
-      y=df_train.interaction.values - mu,
-      epochs=epochs,
-      batch_size=128,
-      validation_data=(
-        [df_test.user_id.values, df_test.song_id.values, continuous_data_test.values],
-        df_test.interaction.values - mu
-      )
+        x=[df_train.user_id.values, df_train.song_id.values],
+        y=df_train.interaction.values - mu,
+        epochs=epochs,
+        batch_size=128,
+        validation_data=(
+            [df_test.user_id.values, df_test.song_id.values],
+            df_test.interaction.values - mu
+        )
     )
 
     plt.plot(r.history['loss'], label="train loss")
@@ -400,13 +277,14 @@ if not os.path.exists(model_path):
     plt.legend()
     plt.savefig('mse_plot.png')
     plt.clf()
+
     model.save(model_path)
-    print('\n\n')
     print("Model trained and saved as 'model.h5'.")
 else:
-    print('\n\n')
     print("Model 'model.h5' already exists. Loading model...")
     model = load_model(model_path)
+
+# In[13]:
 
 
 model.summary()
@@ -431,42 +309,33 @@ if 'r' in locals():  # Check if training results are available
     plt.tight_layout()
     plt.show()
 else:
-    print('\n\n')
     print("No training session to plot, model was loaded from file.")
 
 # ## Predictive Model Input Preparation and Execution
 #
-# ### 1. **Define Continuous Features**:
-#    - Specify the list of continuous features such as `release`, `popularity`, `danceability`, `energy`, `key`, `mode`, `valence`, `tempo`, and `time_of_day`, which are critical for the model’s input.
-#
-# ### 2. **Select Specific User**:
+# ### 1. **Select Specific User**:
 #    - A specific user (`specific_user_id`) is selected from the test data to focus the predictions on.
 #
-# ### 3. **Prepare User Input Array**:
+# ### 2. **Prepare User Input Array**:
 #    - Create an array `user_input` where the selected user’s ID is repeated for each song, ensuring each song is paired with the user for prediction purposes.
 #
-# ### 4. **Prepare Song Input Array**:
+# ### 3. **Prepare Song Input Array**:
 #    - Generate `song_input` as an array of indices representing all unique songs (`M` is the total count of unique songs).
 #
-# ### 5. **Map Song IDs to DataFrame Indices**:
+# ### 4. **Map Song IDs to DataFrame Indices**:
 #    - Construct a dictionary `song_id_to_index` that maps each song ID to its corresponding index in `interaction_df` for efficient data retrieval.
 #
-# ### 6. **Prepare Continuous Data for Model Input**:
-#    - Use the mapping from song IDs to fetch and structure the continuous data corresponding to all songs, ensuring the data aligns correctly with each song ID in the input array.
+# ### 5. **Execute Predictions**:
+#    - Make predictions for all songs for the selected user using the prepared inputs (`user_input`, `song_input`).
 #
-# ### 7. **Execute Predictions**:
-#    - Make predictions for all songs for the selected user using the prepared inputs (`user_input`, `song_input`, and `continuous_data_input`).
-#
-# ### 8. **Adjust Predictions**:
+# ### 6. **Adjust Predictions**:
 #    - Normalize predicted interactions by adding the mean interaction value (`mu`) from the training set to each prediction, compensating for any baseline shifts in interaction levels.
 
 user_ids_test = df_test.user_id.values
 song_ids_test = df_test.song_id.values
-continuous_features = ["release", "popularity", "danceability", "energy", "key", "mode", "valence", "tempo",
-                       "time_of_day"]
 
 # Select a specific user for the prediction
-specific_user_id = user_ids_test[0]
+specific_user_id = user_ids_test[0]  # Example: taking the first user in the test set
 
 # Prepare input data for the model
 M = interaction_df['song_id'].nunique()  # Total number of unique songs
@@ -476,18 +345,16 @@ song_input = np.array(range(M))  # Array of all unique song IDs
 # Map song IDs to indices in df
 song_id_to_index = {id: idx for idx, id in enumerate(interaction_df['song_id'].unique())}
 
-# Prepare continuous data for all songs
-continuous_data_input = np.array(
-    [interaction_df.loc[song_id_to_index[song_id], continuous_features] for song_id in song_input])
+# Make predictions for this user with all songs
+predicted_interactions = model.predict([user_input, song_input])
 
-# Make predictions for this user with all songs, including the continuous data
-predicted_interactions = model.predict([user_input, song_input, continuous_data_input])
-
-mu = df_train.interaction.mean()  # Mean interaction value for normalization
+# Convert predictions back to the original scale, if needed
+mu = df_train.interaction.mean()  # Mean interaction value for normalization (if used during training)
 predicted_interactions = predicted_interactions.flatten() + mu
 print('\n\n')
 print("predicted_interactions:")
 print(predicted_interactions)
+
 
 # ## Extracting Top Song Recommendations
 #
@@ -511,12 +378,11 @@ top_n_song_ids = song_encoder.inverse_transform(top_n_indices)
 print('\n\n')
 print(f"Top {N} recommended song IDs for user {specific_user_id} are:", top_n_song_ids)
 print('\n\n')
-print('user_input.shape, song_input.shape, continuous_data_input.shape:')
-print(user_input.shape, song_input.shape, continuous_data_input.shape)
+print('user_input.shape, song_input.shape:')
+print(user_input.shape, song_input.shape)
 print('\n\n')
 print('Specified users unique songs:')
 print(df[df.user_id == specific_user_id].song.unique())
-
 
 # ## Displaying Detailed Song Information for Recommendations
 #
