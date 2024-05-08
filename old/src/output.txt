@@ -1,0 +1,103 @@
+       Unnamed: 0           user  ...           timestamp time_of_day
+0               0  user_007XIjOr  ... 2019-02-20 12:28:00           2
+1               1  user_007XIjOr  ... 2019-02-20 12:35:00           2
+2               2  user_007XIjOr  ... 2019-02-20 12:48:00           2
+3               3  user_007XIjOr  ... 2019-02-20 12:52:00           2
+4               4  user_007XIjOr  ... 2019-02-20 13:09:00           2
+...           ...            ...  ...                 ...         ...
+99995       99995  user_1AAoY0Yh  ... 2019-03-07 22:30:00           3
+99996       99996  user_1AAoY0Yh  ... 2019-03-08 00:11:00           3
+99997       99997  user_1AAoY0Yh  ... 2019-03-08 03:23:00           3
+99998       99998  user_1AAoY0Yh  ... 2019-03-08 06:04:00           1
+99999       99999  user_1AAoY0Yh  ... 2019-03-08 06:57:00           1
+
+[100000 rows x 5 columns]
+       Unnamed: 0           user  ...           timestamp time_of_day
+2015         2015  user_00s56GJz  ... 2019-03-18 14:27:00           2
+2016         2016  user_00s56GJz  ... 2019-03-18 14:31:00           2
+2017         2017  user_00s56GJz  ... 2019-03-18 14:40:00           2
+2018         2018  user_00s56GJz  ... 2019-03-18 14:46:00           2
+5196         5196  user_02jFGVkG  ... 2019-03-18 12:29:00           2
+...           ...            ...  ...                 ...         ...
+87485       87485  user_11fY6Q0Q  ... 2019-03-19 23:46:00           3
+87486       87486  user_11fY6Q0Q  ... 2019-03-20 07:42:00           1
+87487       87487  user_11fY6Q0Q  ... 2019-03-20 10:14:00           1
+87488       87488  user_11fY6Q0Q  ... 2019-03-20 12:46:00           2
+87489       87489  user_11fY6Q0Q  ... 2019-03-20 17:49:00           2
+
+[1571 rows x 5 columns]
+(702,) (13,)
+13 702
+(1571, 16) (9126, 12)
+(7300, 9) (1826, 9) (7300, 12)
+Model: "model"
+__________________________________________________________________________________________________
+ Layer (type)                   Output Shape         Param #     Connected to                     
+==================================================================================================
+ input_1 (InputLayer)           [(None, 1)]          0           []                               
+                                                                                                  
+ input_2 (InputLayer)           [(None, 1)]          0           []                               
+                                                                                                  
+ embedding (Embedding)          (None, 1, 15)        9495        ['input_1[0][0]']                
+                                                                                                  
+ embedding_1 (Embedding)        (None, 1, 15)        272895      ['input_2[0][0]']                
+                                                                                                  
+ flatten_1 (Flatten)            (None, 15)           0           ['embedding[0][0]']              
+                                                                                                  
+ flatten_2 (Flatten)            (None, 15)           0           ['embedding_1[0][0]']            
+                                                                                                  
+ input_3 (InputLayer)           [(None, 9)]          0           []                               
+                                                                                                  
+ concatenate (Concatenate)      (None, 39)           0           ['flatten_1[0][0]',              
+                                                                  'flatten_2[0][0]',              
+                                                                  'input_3[0][0]']                
+                                                                                                  
+ dense (Dense)                  (None, 512)          20480       ['concatenate[0][0]']            
+                                                                                                  
+ activation (Activation)        (None, 512)          0           ['dense[0][0]']                  
+                                                                                                  
+ dropout (Dropout)              (None, 512)          0           ['activation[0][0]']             
+                                                                                                  
+ dense_1 (Dense)                (None, 512)          262656      ['dropout[0][0]']                
+                                                                                                  
+ activation_1 (Activation)      (None, 512)          0           ['dense_1[0][0]']                
+                                                                                                  
+ dropout_1 (Dropout)            (None, 512)          0           ['activation_1[0][0]']           
+                                                                                                  
+ dense_2 (Dense)                (None, 512)          262656      ['dropout_1[0][0]']              
+                                                                                                  
+ dot (Dot)                      (None, 1, 1)         0           ['embedding[0][0]',              
+                                                                  'embedding_1[0][0]']            
+                                                                                                  
+ embedding_2 (Embedding)        (None, 1, 1)         633         ['input_1[0][0]']                
+                                                                                                  
+ embedding_3 (Embedding)        (None, 1, 1)         18193       ['input_2[0][0]']                
+                                                                                                  
+ activation_2 (Activation)      (None, 512)          0           ['dense_2[0][0]']                
+                                                                                                  
+ add (Add)                      (None, 1, 1)         0           ['dot[0][0]',                    
+                                                                  'embedding_2[0][0]',            
+                                                                  'embedding_3[0][0]']            
+                                                                                                  
+ dropout_2 (Dropout)            (None, 512)          0           ['activation_2[0][0]']           
+                                                                                                  
+ flatten (Flatten)              (None, 1)            0           ['add[0][0]']                    
+                                                                                                  
+ dense_3 (Dense)                (None, 1)            513         ['dropout_2[0][0]']              
+                                                                                                  
+ add_1 (Add)                    (None, 1)            0           ['flatten[0][0]',                
+                                                                  'dense_3[0][0]']                
+                                                                                                  
+==================================================================================================
+Total params: 847,521
+Trainable params: 847,521
+Non-trainable params: 0
+__________________________________________________________________________________________________
+ 1/22 [>.............................] - ETA: 2s22/22 [==============================] - 0s 1ms/step
+Top 10 recommended song IDs for user 4 are: ['LL2yCTeU02pxm8FO' 'OgWDV82JkbGlam41' 'HUt1kTKo5saxTTds'
+ 'AkGyrviNXUf9Hh2h' 'OdXJ9OxB92ciF92t' 'AyzKEkr3T7TpexUG'
+ 'JkDZBV4YxpXFvqHr' 'Azcw8iZ1ufUeR8Sb' 'MzIkPSS9cbwqN68X'
+ 'CovyQ9KZ9gOB04WT']
+(702,)
+(702,)
+(702, 9)

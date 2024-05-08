@@ -1,0 +1,2 @@
+C:\Users\olko\Desktop\2023-Kolek-Musical_context-aware_recommendation_using_neural_networks\venv\lib\site-packages\keras\optimizers\optimizer_v2\gradient_descent.py:111: UserWarning: The `lr` argument is deprecated, use `learning_rate` instead.
+  super().__init__(name, **kwargs)

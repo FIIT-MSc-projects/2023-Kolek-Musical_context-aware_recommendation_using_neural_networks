@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "C:\Users\olko\Desktop\2023-Kolek-Musical_context-aware_recommendation_using_neural_networks\src\Recommendation_system_songs_evaluation-latest.py", line 234, in <module>
+    [interaction_df.loc[interaction_df.song_id[song_indices[song_id]]] for song_id in last_5_song_ids])
+  File "C:\Users\olko\Desktop\2023-Kolek-Musical_context-aware_recommendation_using_neural_networks\src\Recommendation_system_songs_evaluation-latest.py", line 234, in <listcomp>
+    [interaction_df.loc[interaction_df.song_id[song_indices[song_id]]] for song_id in last_5_song_ids])
+KeyError: 'aPPVq97XeQv8mqsU'
